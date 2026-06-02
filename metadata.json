@@ -1,0 +1,6 @@
+{
+  "name": "Station",
+  "description": "An immersive, glassmorphic music streaming and discovery application supporting YouTube integration, curated playlists, search, and dynamic playback.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
