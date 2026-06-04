@@ -14,7 +14,7 @@ interface PlaybackContextType {
   activeQueue: Track[];
   queueIndex: number;
   togglePlay: () => void;
-  playTrack: (track: Track) => void;
+  playTrack: (track: Track, contextQueue?: Track[]) => void;
   playPlaylist: (playlist: Playlist) => void;
   nextTrack: () => void;
   prevTrack: () => void;
@@ -60,7 +60,7 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     album: '',
     duration: '0:00',
     durationSec: 0,
-    coverArt: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=400&fit=crop',
+    coverArt: '',
     youtubeId: ''
   };
 
@@ -98,6 +98,7 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const [activeQueue, setActiveQueue] = useState<Track[]>([]);
   const [queueIndex, setQueueIndex] = useState(0);
+  const [isRadioQueue, setIsRadioQueue] = useState(true);
   const [isNowPlayingOpen, setNowPlayingOpen] = useState(false);
   const [isShuffle, setShuffle] = useState(false);
   const [isRepeat, setRepeat] = useState(false);
@@ -114,6 +115,14 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const ytPlayerRef = useRef<any>(null);
   const iframeContainerRef = useRef<HTMLDivElement | null>(null);
   const progressTimerRef = useRef<number | null>(null);
+  const eventCallbacksRef = useRef<{ handleTrackEnded: () => void, setIsPlaying: (val: boolean) => void, prevTrack: () => void, nextTrack: () => void, togglePlay: () => void, activeTrack: Track | null }>({
+    handleTrackEnded: () => {},
+    setIsPlaying: () => {},
+    prevTrack: () => {},
+    nextTrack: () => {},
+    togglePlay: () => {},
+    activeTrack: null
+  });
 
   useEffect(() => {
     localStorage.setItem('station_playlists', JSON.stringify(playlists));
@@ -130,23 +139,29 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
   };
 
-  const generateRelatedQueue = async (track: Track) => {
+  const generateRelatedQueue = async (track: Track, append: boolean = false) => {
     try {
-      const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(track.artist + ' song')}`);
+      const query = track.artist ? `${track.artist} official music` : track.title + ' official track';
+      const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}`);
       if (res.ok) {
         const data = await res.json();
         if (data.status === 'success' && data.tracks) {
-          // Filter out the exact same track ID if it's there, and ensure the current track is first
-          const related = data.tracks.filter((t: Track) => t.id !== track.id);
-          setActiveQueue([track, ...related].slice(0, 30));
+          const related = data.tracks.filter((t: Track) => t.id !== track.id).slice(0, 24);
+          if (append) {
+             setActiveQueue(prev => {
+                const existingIds = new Set(prev.map(t => t.id));
+                const uniqueNew = related.filter((t: Track) => !existingIds.has(t.id));
+                return [...prev, ...uniqueNew];
+             });
+          } else {
+             setActiveQueue([track, ...related]);
+          }
           return;
         }
       }
     } catch(e) {
       console.warn("Failed to fetch related queue");
     }
-    // Fallback if failed
-    setActiveQueue([track]);
   };
 
   useEffect(() => {
@@ -206,8 +221,12 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             event.target.setVolume(volume);
           },
           onStateChange: (event: any) => {
-            if (event.data === 0) {
-              handleTrackEnded();
+            if (event.data === 0) { // ENDED
+              eventCallbacksRef.current.handleTrackEnded();
+            } else if (event.data === 1) { // PLAYING
+              eventCallbacksRef.current.setIsPlaying(true);
+            } else if (event.data === 2) { // PAUSED
+              eventCallbacksRef.current.setIsPlaying(false);
             }
           },
         },
@@ -280,20 +299,26 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIsPlaying((prev) => !prev);
   };
 
-  const playTrack = (track: Track) => {
+  const playTrack = (track: Track, contextQueue?: Track[]) => {
     // Only play if not empty fallback
     if (track.id === 'empty') return;
     
     setActiveTrack(track);
     addToRecentTracks(track);
     
-    // Seed with just this track first so it plays immediately
-    setActiveQueue([track]);
-    setQueueIndex(0);
-    setIsPlaying(true);
-
-    // Automatically generate a smart queue async
-    generateRelatedQueue(track);
+    if (contextQueue && contextQueue.length > 0) {
+      setActiveQueue(contextQueue);
+      setQueueIndex(contextQueue.findIndex(t => t.id === track.id) || 0);
+      setIsRadioQueue(false);
+      setIsPlaying(true);
+    } else {
+      // Seed with just this track first so it plays immediately
+      setActiveQueue([track]);
+      setQueueIndex(0);
+      setIsRadioQueue(true);
+      setIsPlaying(true);
+      generateRelatedQueue(track);
+    }
   };
 
   const playPlaylist = (playlist: Playlist) => {
@@ -302,6 +327,7 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setQueueIndex(0);
       setActiveTrack(playlist.tracks[0]);
       addToRecentTracks(playlist.tracks[0]);
+      setIsRadioQueue(false);
       setIsPlaying(true);
     }
   };
@@ -309,6 +335,12 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const nextTrack = () => {
     if (activeQueue.length === 0) return;
     let nextIndex = queueIndex + 1;
+    
+    // Handle queue expansion
+    if (isRadioQueue && nextIndex >= activeQueue.length - 2 && activeQueue.length > 0) {
+       generateRelatedQueue(activeQueue[activeQueue.length - 1], true);
+    }
+
     if (isShuffle) {
       nextIndex = Math.floor(Math.random() * activeQueue.length);
     } else if (nextIndex >= activeQueue.length) {
@@ -366,7 +398,7 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       title,
       tracksCount: 0,
       tracks: [],
-      coverArt: 'https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?q=80&w=200&auto=format&fit=crop',
+      coverArt: '',
       createdBy: userName
     };
     setPlaylists((prev) => [newPlaylist, ...prev]);
@@ -445,6 +477,49 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return nextQ;
     });
   };
+
+  useEffect(() => {
+    eventCallbacksRef.current = {
+      handleTrackEnded,
+      setIsPlaying,
+      prevTrack,
+      nextTrack,
+      togglePlay,
+      activeTrack
+    };
+  }, [handleTrackEnded, setIsPlaying, prevTrack, nextTrack, togglePlay, activeTrack]);
+
+  // Update Media Session
+  useEffect(() => {
+    if ('mediaSession' in navigator && window.MediaMetadata) {
+      if (activeTrack && activeTrack.id !== 'empty') {
+        navigator.mediaSession.metadata = new window.MediaMetadata({
+          title: activeTrack.title,
+          artist: activeTrack.artist,
+          artwork: [
+            {
+              src: activeTrack.coverArt || `https://images.unsplash.com/photo-1557672172-298e090bd0f1?auto=format&fit=crop&w=512&q=80`,
+              sizes: '512x512',
+              type: 'image/jpeg'
+            }
+          ]
+        });
+
+        navigator.mediaSession.setActionHandler('play', () => {
+          eventCallbacksRef.current.setIsPlaying(true);
+        });
+        navigator.mediaSession.setActionHandler('pause', () => {
+          eventCallbacksRef.current.setIsPlaying(false);
+        });
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+          eventCallbacksRef.current.prevTrack();
+        });
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+          eventCallbacksRef.current.nextTrack();
+        });
+      }
+    }
+  }, [activeTrack]);
 
   const jumpToQueueIndex = (index: number) => {
     if (index >= 0 && index < activeQueue.length) {

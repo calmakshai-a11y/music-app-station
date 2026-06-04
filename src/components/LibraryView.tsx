@@ -44,11 +44,11 @@ export const LibraryView: React.FC<LibraryViewProps> = ({ onNavigateToPlaylist }
               placeholder="Playlist name..."
               value={newPlaylistTitle}
               onChange={(e) => setNewPlaylistTitle(e.target.value)}
-              className="px-4 py-2 bg-[#18191d] border border-zinc-850 rounded-full text-sm text-[#f4f4f5] focus:outline-none focus:ring-1 focus:ring-[#1db954]"
+              className="px-4 py-2 bg-[#18191d] border border-zinc-850 rounded-full text-sm text-[#f4f4f5] focus:outline-none focus:ring-1 focus:ring-[var(--theme-color)]"
             />
             <button
               type="submit"
-              className="px-4 py-2 bg-[#1db954] hover:bg-[#1ed760] text-black font-bold rounded-full text-xs active:scale-95 transition-transform cursor-pointer"
+              className="px-4 py-2 bg-[var(--theme-color)] hover:bg-[#1ed760] text-black font-bold rounded-full text-xs active:scale-95 transition-transform cursor-pointer"
             >
               Add
             </button>
@@ -63,7 +63,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({ onNavigateToPlaylist }
         ) : (
           <button
             onClick={() => setIsCreating(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#1db954] hover:bg-[#1ed760] text-black rounded-full text-xs font-bold transition-all hover:scale-102 active:scale-95 shadow-md cursor-pointer"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[var(--theme-color)] hover:bg-[#1ed760] text-black rounded-full text-xs font-bold transition-all hover:scale-102 active:scale-95 shadow-md cursor-pointer"
           >
             <span className="material-symbols-outlined text-sm font-bold">add</span>
             <span>Create New Playlist</span>
@@ -78,7 +78,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({ onNavigateToPlaylist }
         </div>
         <input
           type="text"
-          className="w-full h-10 pl-10 pr-4 bg-[#18191d] border border-zinc-800 rounded-full font-jakarta text-xs text-[#f4f4f5] placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#1db954]/50 focus:border-[#1db954] transition-all"
+          className="w-full h-10 pl-10 pr-4 bg-[#18191d] border border-zinc-800 rounded-full font-jakarta text-xs text-[#f4f4f5] placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-[var(--theme-color)]/50 focus:border-[var(--theme-color)] transition-all"
           placeholder="Filter playlists, songs..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -93,24 +93,21 @@ export const LibraryView: React.FC<LibraryViewProps> = ({ onNavigateToPlaylist }
             {/* Liked Songs Tile */}
             {showLikedSongs && (
               <div
-                className="bg-gradient-to-br from-[#4a148c] to-[#311b92] p-4 rounded-2xl flex flex-col justify-between h-48 hover:scale-[1.02] transition-transform cursor-pointer shadow-lg group relative overflow-hidden"
+                onClick={() => onNavigateToPlaylist('liked')}
+                className="bg-[#18191d] p-3 rounded-2xl flex items-center gap-4 hover:bg-[#202125] transition-all cursor-pointer group border border-zinc-850 h-24"
               >
-                <div className="flex-1 space-y-2 mt-4 z-10 w-full mb-8 overflow-y-auto hide-scrollbar">
-                  {likedSongs.slice(0, 3).map(song => (
-                    <div key={song.id} className="text-white text-xs font-jakarta truncate opacity-90 w-full" onClick={(e) => { e.stopPropagation(); playTrack(song); }}>
-                      <span className="font-bold">{song.title}</span> <span className="opacity-70">• {song.artist}</span>
-                    </div>
-                  ))}
-                  {likedSongs.length > 3 && (
-                    <div className="text-white text-xs font-jakarta opacity-70">
-                      and {likedSongs.length - 3} more...
-                    </div>
-                  )}
+                <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 shadow-md bg-gradient-to-br from-[#4a148c] to-[#311b92] flex items-center justify-center">
+                  <span className="material-symbols-outlined text-white text-2xl">favorite</span>
                 </div>
-                <div className="z-10 mt-auto">
-                  <h3 className="text-2xl font-bold font-hanken text-white">Liked Songs</h3>
-                  <p className="text-white/80 font-jakarta text-xs font-semibold">{likedSongs.length} liked songs</p>
+                <div className="flex-grow min-w-0">
+                  <p className="font-jakarta font-semibold text-sm text-white truncate">Liked Songs</p>
+                  <p className="font-jakarta text-xs text-[#a7a7a7]">
+                    {likedSongs.length} Tracks
+                  </p>
                 </div>
+                <button className="material-symbols-outlined text-zinc-500 hover:text-white transition-opacity p-2 text-2xl">
+                  chevron_right
+                </button>
               </div>
             )}
 

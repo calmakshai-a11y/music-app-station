@@ -7,9 +7,10 @@ interface TrackItemProps {
   index?: number;
   onRemove?: () => void;
   removeLabel?: string;
+  contextQueue?: Track[];
 }
 
-export const TrackItem: React.FC<TrackItemProps> = ({ track, index, onRemove, removeLabel }) => {
+export const TrackItem: React.FC<TrackItemProps> = ({ track, index, onRemove, removeLabel, contextQueue }) => {
   const { playTrack, activeTrack, isPlaying, playNext, addToQueue, toggleLikeTrack, likedTracks, playlists, addTrackToPlaylist } = usePlayback();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showPlaylists, setShowPlaylists] = useState(false);
@@ -41,7 +42,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({ track, index, onRemove, re
 
   return (
     <div
-      onClick={() => playTrack(track)}
+      onClick={() => playTrack(track, contextQueue)}
       className={`flex items-center justify-between p-3 rounded-xl hover:bg-[#18191d] transition-all cursor-pointer relative group ${
         isCurrent ? 'bg-[#18191d] border border-zinc-800' : 'border border-transparent'
       }`}
@@ -52,16 +53,16 @@ export const TrackItem: React.FC<TrackItemProps> = ({ track, index, onRemove, re
             {index + 1}
           </span>
         )}
-        <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 relative border border-white/5 shadow-sm">
-          <img className="w-full h-full object-cover" src={track.coverArt} alt={track.title} />
+        <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 relative border border-white/5 shadow-sm bg-zinc-800 flex items-center justify-center">
+          <img className="w-full h-full object-cover" src={track.coverArt || `https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?auto=format&fit=crop&w=200&q=80`} alt={track.title} />
           {isCurrent && isPlaying && (
             <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-              <span className="material-symbols-outlined text-[#1db954] animate-pulse">equalizer</span>
+              <span className="material-symbols-outlined text-[var(--theme-color)] animate-pulse">equalizer</span>
             </div>
           )}
         </div>
         <div className="truncate pr-4">
-          <p className={`font-jakarta font-semibold text-sm truncate ${isCurrent ? 'text-[#1db954]' : 'text-zinc-200'}`}>
+          <p className={`font-jakarta font-semibold text-sm truncate ${isCurrent ? 'text-[var(--theme-color)]' : 'text-zinc-200'}`}>
             {track.title}
           </p>
           <p className="font-jakarta text-xs text-[#a7a7a7] truncate">{track.artist}</p>
@@ -74,7 +75,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({ track, index, onRemove, re
             e.stopPropagation();
             toggleLikeTrack(track);
           }}
-          className={`material-symbols-outlined transition-colors text-xl cursor-pointer hover:scale-110 active:scale-90 ${isLiked ? 'text-[#1db954] fill-1' : 'text-[#a7a7a7]'}`}
+          className={`material-symbols-outlined transition-colors text-xl cursor-pointer hover:scale-110 active:scale-90 ${isLiked ? 'text-[var(--theme-color)] fill-1' : 'text-[#a7a7a7]'}`}
         >
           favorite
         </button>

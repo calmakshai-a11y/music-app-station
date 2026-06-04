@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PlaybackProvider, usePlayback } from './PlaybackContext';
 import { HomeView } from './components/HomeView';
 import { SearchView } from './components/SearchView';
@@ -24,6 +24,46 @@ function StationAppContent() {
 
   const [showNameModal, setShowNameModal] = useState(false);
   const [tempName, setTempName] = useState(userName);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const colors = [
+    { name: 'Spotify Green', value: '#1db954' },
+    { name: 'Ocean Blue', value: '#3b82f6' },
+    { name: 'Amethyst', value: '#8b5cf6' },
+    { name: 'Rose', value: '#f43f5e' },
+    { name: 'Amber', value: '#f59e0b' }
+  ];
+  const fonts = [
+    { name: 'Jakarta (Default)', value: "'Plus Jakarta Sans', system-ui, sans-serif" },
+    { name: 'Playfair Display (Serif)', value: "'Playfair Display', serif" },
+    { name: 'Baskervville (Classic)', value: "'Baskervville', serif" },
+    { name: 'Quicksand (Rounded)', value: "'Quicksand', sans-serif" },
+    { name: 'Courier Prime (Mono)', value: "'Courier Prime', monospace" },
+    { name: 'Cinzel (Cinematic)', value: "'Cinzel', serif" },
+    { name: 'Varela Round (Soft Soft)', value: "'Varela Round', sans-serif" },
+    { name: 'Pacifico (Cursive)', value: "'Pacifico', cursive" },
+  ];
+
+  useEffect(() => {
+    const savedColor = localStorage.getItem('station_theme_color');
+    const savedFont = localStorage.getItem('station_theme_font');
+    if (savedColor) document.documentElement.style.setProperty('--theme-color', savedColor);
+    if (savedFont) {
+      document.documentElement.style.setProperty('--theme-font', savedFont);
+      document.documentElement.style.setProperty('--theme-heading-font', savedFont);
+    }
+  }, []);
+
+  const changeThemeColor = (color: string) => {
+    document.documentElement.style.setProperty('--theme-color', color);
+    localStorage.setItem('station_theme_color', color);
+  };
+
+  const changeThemeFont = (font: string) => {
+    document.documentElement.style.setProperty('--theme-font', font);
+    document.documentElement.style.setProperty('--theme-heading-font', font);
+    localStorage.setItem('station_theme_font', font);
+  };
+
 
   // Progress Bar percentage for the mini player
   const progressPercent = (progress / activeTrack.durationSec) * 100 || 0;
@@ -34,31 +74,37 @@ function StationAppContent() {
   };
 
   return (
-    <div className="min-h-screen pb-36 relative font-jakarta select-none selection:bg-[#1db954]/30 bg-[#07080a]">
+    <div className="min-h-screen pb-36 relative font-jakarta select-none selection:bg-[var(--theme-color)]/30 bg-[#07080a]">
       
       {/* TopAppBar Navigation Header */}
       <nav id="top-nav-bar" className="fixed top-0 w-full z-40 bg-[#0b0c0f]/80 backdrop-blur-3xl border-b border-white/5 shadow-sm flex justify-between items-center px-6 h-16">
         <div className="flex items-center gap-4">
-          <button className="material-symbols-outlined text-[#1db954] scale-105 active:scale-95 transition-transform cursor-pointer">
+          <button className="material-symbols-outlined text-[var(--theme-color)] scale-105 active:scale-95 transition-transform cursor-pointer">
             radio
           </button>
           <h1 
             onClick={() => setCurrentView('home')}
-            className="font-hanken text-2xl text-white tracking-tighter font-extrabold cursor-pointer hover:text-[#1db954] transition-colors flex items-center gap-1.5"
+            className="font-hanken text-2xl text-white tracking-tighter font-extrabold cursor-pointer hover:text-[#3b82f6] transition-colors flex items-center gap-1.5"
           >
-            Station <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-[#1db954] border border-green-500/20 uppercase tracking-widest hidden sm:inline-block">Spotify Styled</span>
+            Station
           </h1>
         </div>
         <div className="flex items-center gap-4">
           <button 
+            onClick={() => setShowSettingsModal(true)}
+            className="material-symbols-outlined text-[#a7a7a7] hover:text-[var(--theme-color)] transition-colors cursor-pointer"
+          >
+            settings
+          </button>
+          <button 
             onClick={() => setCurrentView('search')}
-            className="material-symbols-outlined text-[#a7a7a7] hover:text-[#1db954] transition-colors cursor-pointer"
+            className="material-symbols-outlined text-[#a7a7a7] hover:text-[var(--theme-color)] transition-colors cursor-pointer"
           >
             search
           </button>
           <button 
             onClick={() => setShowNameModal(true)}
-            className="w-8 h-8 rounded-full bg-[#1db954] flex items-center justify-center hover:scale-105 transition-transform cursor-pointer font-bold text-black text-xs shadow-lg"
+            className="w-8 h-8 rounded-full bg-[var(--theme-color)] flex items-center justify-center hover:scale-105 transition-transform cursor-pointer font-bold text-black text-xs shadow-lg"
           >
             {userName ? userName.charAt(0).toUpperCase() : 'U'}
           </button>
@@ -73,7 +119,7 @@ function StationAppContent() {
             <input 
               type="text" 
               placeholder="Your Name"
-              className="w-full h-12 bg-black/50 border border-zinc-800 rounded-xl px-4 text-white font-jakarta focus:outline-none focus:border-[#1db954]"
+              className="w-full h-12 bg-black/50 border border-zinc-800 rounded-xl px-4 text-white font-jakarta focus:outline-none focus:border-[var(--theme-color)]"
               value={tempName}
               onChange={(e) => setTempName(e.target.value)}
             />
@@ -89,10 +135,59 @@ function StationAppContent() {
                   if(tempName.trim()) setUserName(tempName.trim());
                   setShowNameModal(false);
                 }}
-                className="px-6 py-2 bg-[#1db954] text-black font-semibold rounded-full hover:scale-105 transition-transform font-jakarta text-sm"
+                className="px-6 py-2 bg-[var(--theme-color)] text-black font-semibold rounded-full hover:scale-105 transition-transform font-jakarta text-sm"
               >
                 Save
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-[#18191d] p-6 rounded-3xl border border-white/5 w-full max-w-sm shadow-2xl">
+            <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
+              <h3 className="text-white font-hanken font-bold text-2xl flex items-center gap-2">
+                <span className="material-symbols-outlined">style</span> Appearance
+              </h3>
+              <button onClick={() => setShowSettingsModal(false)} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-white flex items-center justify-center transition-colors">
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              <div>
+                <h4 className="text-zinc-400 text-xs uppercase tracking-widest font-bold mb-3">Theme Color</h4>
+                <div className="flex gap-3">
+                  {colors.map(c => (
+                    <button
+                      key={c.name}
+                      onClick={() => changeThemeColor(c.value)}
+                      title={c.name}
+                      className="w-8 h-8 rounded-full shadow-md transition-transform hover:scale-110 active:scale-95"
+                      style={{ backgroundColor: c.value }}
+                    />
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="text-zinc-400 text-xs uppercase tracking-widest font-bold mb-3">Typography</h4>
+                <div className="space-y-2">
+                  {fonts.map(f => (
+                    <button
+                      key={f.name}
+                      onClick={() => changeThemeFont(f.value)}
+                      className="w-full text-left px-4 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-white font-jakarta text-sm transition-colors border border-transparent hover:border-white/10"
+                      style={{ fontFamily: f.value }}
+                    >
+                      {f.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -118,14 +213,14 @@ function StationAppContent() {
           className="bg-[#18191d]/95 backdrop-blur-xl rounded-2xl p-3 flex items-center justify-between gap-4 shadow-2xl cursor-pointer hover:bg-[#222328] transition-all border border-white/5"
         >
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className={`w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 ${isPlaying ? 'animate-pulse' : ''}`}>
-              <img alt="Playing album artwork mini" className="w-full h-full object-cover animate-in fade-in" src={activeTrack.coverArt} />
+            <div className={`w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 bg-zinc-800 flex items-center justify-center ${isPlaying ? 'animate-pulse' : ''}`}>
+              <img alt="Playing album artwork mini" className="w-full h-full object-cover animate-in fade-in" src={activeTrack.coverArt || `https://images.unsplash.com/photo-1557672172-298e090bd0f1?auto=format&fit=crop&w=200&q=80`} />
             </div>
             <div className="truncate min-w-[120px]">
               <p className="font-jakarta font-semibold text-xs text-white truncate">{activeTrack.title}</p>
               <div className="flex items-center gap-1">
                 <p className="text-[10px] text-[#a7a7a7] truncate">{activeTrack.artist}</p>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1db954] animate-ping flex-shrink-0"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--theme-color)] animate-ping flex-shrink-0"></span>
               </div>
             </div>
           </div>
@@ -139,7 +234,7 @@ function StationAppContent() {
             </button>
             <button 
               onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-              className="w-9 h-9 rounded-full bg-[#1db954] flex items-center justify-center text-black shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              className="w-9 h-9 rounded-full bg-[var(--theme-color)] flex items-center justify-center text-black shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
             >
               <span className="material-symbols-outlined fill-1 text-xl font-bold">
                 {isPlaying ? 'pause' : 'play_arrow'}
@@ -156,7 +251,7 @@ function StationAppContent() {
           {/* Miniature interactive loading progress line */}
           <div className="absolute bottom-0 left-0 h-0.5 bg-white/5 w-full overflow-hidden rounded-full">
             <div 
-              className="h-full bg-[#1db954] shadow-[0_0_8px_rgba(29,185,84,0.6)] transition-all duration-300" 
+              className="h-full bg-[var(--theme-color)] shadow-[0_0_8px_rgba(29,185,84,0.6)] transition-all duration-300" 
               style={{ width: `${progressPercent}%` }}
             ></div>
           </div>
@@ -169,7 +264,7 @@ function StationAppContent() {
         <button 
           onClick={() => setCurrentView('home')}
           className={`flex flex-col items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer ${
-            currentView === 'home' ? 'text-[#1db954] font-bold scale-102' : 'text-[#a7a7a7] opacity-70 hover:opacity-100'
+            currentView === 'home' ? 'text-[var(--theme-color)] font-bold scale-102' : 'text-[#a7a7a7] opacity-70 hover:opacity-100'
           }`}
         >
           <span className="material-symbols-outlined fill-1">home</span>
@@ -179,7 +274,7 @@ function StationAppContent() {
         <button 
           onClick={() => setCurrentView('search')}
           className={`flex flex-col items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer ${
-            currentView === 'search' ? 'text-[#1db954] font-bold scale-102' : 'text-[#a7a7a7] opacity-70 hover:opacity-100'
+            currentView === 'search' ? 'text-[var(--theme-color)] font-bold scale-102' : 'text-[#a7a7a7] opacity-70 hover:opacity-100'
           }`}
         >
           <span className="material-symbols-outlined">search</span>
@@ -189,7 +284,7 @@ function StationAppContent() {
         <button 
           onClick={() => setCurrentView('library')}
           className={`flex flex-col items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer ${
-            currentView === 'library' ? 'text-[#1db954] font-bold scale-102' : 'text-[#a7a7a7] opacity-70 hover:opacity-100'
+            currentView === 'library' ? 'text-[var(--theme-color)] font-bold scale-102' : 'text-[#a7a7a7] opacity-70 hover:opacity-100'
           }`}
         >
           <span className="material-symbols-outlined">library_music</span>

@@ -87,7 +87,7 @@ export const NowPlayingView: React.FC = () => {
           onClick={() => setNowPlayingOpen(false)}
           className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 border border-white/5 hover:opacity-80 transition-opacity active:scale-95 cursor-pointer flex-shrink-0"
         >
-          <span className="material-symbols-outlined text-[#1db954] text-2xl font-bold">expand_more</span>
+          <span className="material-symbols-outlined text-[var(--theme-color)] text-2xl font-bold">expand_more</span>
         </button>
 
         {/* Dynamic Mode Switcher pills */}
@@ -96,7 +96,7 @@ export const NowPlayingView: React.FC = () => {
             onClick={() => setShowVideoPlayer(false)}
             className={`px-4 py-1.5 rounded-full text-[10px] uppercase font-bold tracking-wider transition-all cursor-pointer ${
               !showVideoPlayer 
-                ? 'bg-[#1db954] text-black shadow-md' 
+                ? 'bg-[var(--theme-color)] text-black shadow-md' 
                 : 'text-zinc-400 hover:text-white'
             }`}
           >
@@ -128,12 +128,12 @@ export const NowPlayingView: React.FC = () => {
         
         {/* Visual Stage Container: standard album art or live video slot */}
         {!showVideoPlayer ? (
-          <div className="relative w-full aspect-square group max-w-[340px] md:max-w-[360px]">
-            <img
-              className="w-full h-full object-cover rounded-2xl album-shadow transition-transform duration-700 group-hover:scale-[1.01]"
-              src={activeTrack.coverArt}
-              alt={activeTrack.title}
-            />
+          <div className="relative w-full aspect-square group max-w-[340px] md:max-w-[360px] bg-zinc-800 rounded-2xl flex items-center justify-center album-shadow">
+             <img
+               className="w-full h-full object-cover rounded-2xl transition-transform duration-700 group-hover:scale-[1.01]"
+               src={activeTrack.coverArt || `https://images.unsplash.com/photo-1493225457124-a1a2a5f56468?auto=format&fit=crop&w=800&q=80`}
+               alt={activeTrack.title}
+             />
             <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/10"></div>
           </div>
         ) : (
@@ -160,18 +160,18 @@ export const NowPlayingView: React.FC = () => {
           <div className="flex gap-2">
             <button
               onClick={() => setShowPlaylistOptions(!showPlaylistOptions)}
-              className="w-12 h-12 flex items-center justify-center rounded-full text-[#a7a7a7] hover:text-[#1db954] hover:bg-white/5 transition-colors cursor-pointer"
+              className="w-12 h-12 flex items-center justify-center rounded-full text-[#a7a7a7] hover:text-[var(--theme-color)] hover:bg-white/5 transition-colors cursor-pointer"
               title="Add to Playlist"
             >
               <span className="material-symbols-outlined text-2xl">playlist_add</span>
             </button>
             <button
               onClick={() => toggleLikeTrack(activeTrack)}
-              className="w-12 h-12 flex items-center justify-center rounded-full text-[#a7a7a7] hover:text-[#1db954] transition-colors cursor-pointer"
+              className="w-12 h-12 flex items-center justify-center rounded-full text-[#a7a7a7] hover:text-[var(--theme-color)] transition-colors cursor-pointer"
             >
               <span
                 className={`material-symbols-outlined text-2xl transition-all ${
-                  isLiked ? 'text-[#1db954] fill-1 scale-110' : ''
+                  isLiked ? 'text-[var(--theme-color)] fill-1 scale-110' : ''
                 }`}
               >
                 favorite
@@ -216,7 +216,7 @@ export const NowPlayingView: React.FC = () => {
             <div className="absolute w-full h-1 bg-white/10 rounded-full"></div>
             {/* Active Highlighted timeline */}
             <div
-              className="absolute h-1 bg-[#1db954] rounded-full progress-glow"
+              className="absolute h-1 bg-[var(--theme-color)] rounded-full progress-glow"
               style={{ width: `${progressPercent}%` }}
             ></div>
             {/* Draggable Playhead */}
@@ -236,7 +236,7 @@ export const NowPlayingView: React.FC = () => {
           <button
             onClick={() => setShuffle(!isShuffle)}
             className={`p-2 transition-colors cursor-pointer ${
-              isShuffle ? 'text-[#1db954] font-bold scale-105' : 'text-zinc-400 hover:text-white'
+              isShuffle ? 'text-[var(--theme-color)] font-bold scale-105' : 'text-zinc-400 hover:text-white'
             }`}
           >
             <span className="material-symbols-outlined text-2xl font-bold">shuffle</span>
@@ -245,13 +245,13 @@ export const NowPlayingView: React.FC = () => {
           <div className="flex items-center gap-6">
             <button
               onClick={prevTrack}
-              className="p-2 text-zinc-200 hover:text-[#1db954] transition-all active:scale-90 cursor-pointer"
+              className="p-2 text-zinc-200 hover:text-[var(--theme-color)] transition-all active:scale-90 cursor-pointer"
             >
               <span className="material-symbols-outlined text-3xl font-extrabold">skip_previous</span>
             </button>
             <button
               onClick={togglePlay}
-              className="w-18 h-18 flex items-center justify-center rounded-full bg-[#1db954] hover:bg-[#1ed760] hover:scale-105 active:scale-95 transition-all text-black cursor-pointer shadow-xl"
+              className="w-18 h-18 flex items-center justify-center rounded-full bg-[var(--theme-color)] hover:bg-[#1ed760] hover:scale-105 active:scale-95 transition-all text-black cursor-pointer shadow-xl"
             >
               <span className="material-symbols-outlined text-4xl font-extrabold">
                 {isPlaying ? 'pause' : 'play_arrow'}
@@ -259,7 +259,7 @@ export const NowPlayingView: React.FC = () => {
             </button>
             <button
               onClick={nextTrack}
-              className="p-2 text-zinc-200 hover:text-[#1db954] transition-all active:scale-90 cursor-pointer"
+              className="p-2 text-zinc-200 hover:text-[var(--theme-color)] transition-all active:scale-90 cursor-pointer"
             >
               <span className="material-symbols-outlined text-3xl font-extrabold">skip_next</span>
             </button>
@@ -268,7 +268,7 @@ export const NowPlayingView: React.FC = () => {
           <button
             onClick={() => setRepeat(!isRepeat)}
             className={`p-2 transition-colors cursor-pointer ${
-              isRepeat ? 'text-[#1db954] font-bold scale-105' : 'text-zinc-400 hover:text-[#1db954]'
+              isRepeat ? 'text-[var(--theme-color)] font-bold scale-105' : 'text-zinc-400 hover:text-[var(--theme-color)]'
             }`}
           >
             <span className="material-symbols-outlined text-2xl font-bold">repeat</span>
@@ -285,7 +285,7 @@ export const NowPlayingView: React.FC = () => {
           >
             <div className="absolute w-full h-1 bg-white/10 rounded-full"></div>
             <div
-              className="absolute h-1 bg-white/50 rounded-full group-hover:bg-[#1db954] transition-colors"
+              className="absolute h-1 bg-white/50 rounded-full group-hover:bg-[var(--theme-color)] transition-colors"
               style={{ width: `${volume}%` }}
             ></div>
           </div>
@@ -341,7 +341,7 @@ export const NowPlayingView: React.FC = () => {
                   </div>
                   <button 
                     onClick={() => removeFromQueue(actualIndex)}
-                    className="w-10 h-10 flex items-center justify-center opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-red-400 transition-all cursor-pointer bg-white/5 rounded-full hover:bg-white/10"
+                    className="w-10 h-10 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 text-zinc-500 hover:text-red-400 transition-all cursor-pointer bg-white/5 rounded-full hover:bg-white/10"
                     title="Remove from queue"
                   >
                     <span className="material-symbols-outlined text-xl">delete</span>

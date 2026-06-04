@@ -16,7 +16,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigateToPlaylist }) => {
       <section className="bg-[#18191d] border border-zinc-800 p-5 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="space-y-1 text-center md:text-left">
           <div className="flex items-center gap-2 justify-center md:justify-start">
-            <span className="material-symbols-outlined text-[#1db954]">verified</span>
+            <span className="material-symbols-outlined text-[var(--theme-color)]">verified</span>
             <h4 className="font-hanken text-white font-bold text-sm">Station Premium Stream Active</h4>
           </div>
           <p className="font-jakarta text-xs text-[#a7a7a7]">
@@ -35,7 +35,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ onNavigateToPlaylist }) => {
           {recentTracks.length > 0 && (
             <button
               onClick={clearRecentTracks}
-              className="font-jakarta text-xs text-[#1db954] font-semibold hover:underline bg-transparent border-0 cursor-pointer"
+              className="font-jakarta text-xs text-[var(--theme-color)] font-semibold hover:underline bg-transparent border-0 cursor-pointer"
             >
               Clear all
             </button>

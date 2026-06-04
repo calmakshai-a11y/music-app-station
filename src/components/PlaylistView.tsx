@@ -8,9 +8,18 @@ interface PlaylistViewProps {
 }
 
 export const PlaylistView: React.FC<PlaylistViewProps> = ({ playlistId, onBack }) => {
-  const { playlists, deletePlaylist, removeTrackFromPlaylist } = usePlayback();
+  const { playlists, deletePlaylist, removeTrackFromPlaylist, likedTracks, userName, toggleLikeTrack } = usePlayback();
 
-  const playlist = playlists.find((p) => p.id === playlistId);
+  const isLikedSongs = playlistId === 'liked';
+  
+  const playlist = isLikedSongs ? {
+    id: 'liked',
+    title: 'Liked Songs',
+    tracksCount: likedTracks.length,
+    tracks: likedTracks,
+    coverArt: '',
+    createdBy: userName
+  } : playlists.find((p) => p.id === playlistId);
 
   if (!playlist) {
     return (
@@ -31,9 +40,16 @@ export const PlaylistView: React.FC<PlaylistViewProps> = ({ playlistId, onBack }
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       {/* Header */}
       <div className="flex items-end gap-6 bg-gradient-to-t from-[#18191d] to-transparent p-6 -mx-4 sm:mx-0 rounded-2xl sm:rounded-none sm:bg-none sm:p-0 border-b border-zinc-900 pb-8">
-        <div className="w-32 h-32 md:w-48 md:h-48 rounded-2xl overflow-hidden shadow-2xl flex-shrink-0">
-          <img className="w-full h-full object-cover" src={playlist.coverArt} alt={playlist.title} />
-        </div>
+        {!isLikedSongs && playlist.coverArt && (
+          <div className="w-32 h-32 md:w-48 md:h-48 rounded-2xl overflow-hidden shadow-2xl flex-shrink-0 bg-zinc-800">
+            <img className="w-full h-full object-cover" src={playlist.coverArt} alt={playlist.title} />
+          </div>
+        )}
+        {isLikedSongs && (
+          <div className="w-32 h-32 md:w-48 md:h-48 rounded-2xl overflow-hidden shadow-2xl flex-shrink-0 bg-gradient-to-br from-[#4a148c] to-[#311b92] flex items-center justify-center">
+            <span className="material-symbols-outlined text-white text-5xl md:text-7xl">favorite</span>
+          </div>
+        )}
         <div className="space-y-2">
           <p className="font-jakarta text-xs font-bold text-white uppercase tracking-widest">Playlist</p>
           <h1 className="font-hanken text-4xl md:text-6xl text-white font-extrabold tracking-tight">
@@ -53,15 +69,17 @@ export const PlaylistView: React.FC<PlaylistViewProps> = ({ playlistId, onBack }
           <span className="material-symbols-outlined text-sm">arrow_back</span> Back
         </button>
 
-        <button
-          onClick={() => {
-            deletePlaylist(playlist.id);
-            onBack();
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-full font-jakarta text-xs cursor-pointer transition-colors"
-        >
-          <span className="material-symbols-outlined text-sm">delete</span> Delete Playlist
-        </button>
+        {!isLikedSongs && (
+          <button
+            onClick={() => {
+              deletePlaylist(playlist.id);
+              onBack();
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-full font-jakarta text-xs cursor-pointer transition-colors"
+          >
+            <span className="material-symbols-outlined text-sm">delete</span> Delete Playlist
+          </button>
+        )}
       </div>
 
       {/* Track List */}
@@ -72,8 +90,9 @@ export const PlaylistView: React.FC<PlaylistViewProps> = ({ playlistId, onBack }
               key={track.id + idx} 
               track={track} 
               index={idx}
-              onRemove={() => removeTrackFromPlaylist(playlist.id, track.id)}
-              removeLabel="Remove from playlist"
+              onRemove={() => isLikedSongs ? toggleLikeTrack(track) : removeTrackFromPlaylist(playlist.id, track.id)}
+              removeLabel={isLikedSongs ? "Unlike" : "Remove from playlist"}
+              contextQueue={playlist.tracks}
             />
           ))
         ) : (

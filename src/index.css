@@ -1,10 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;800;900&family=Plus+Jakarta+Sans:wght@400;600;700&family=Baskervville&family=Cinzel:wght@600&family=Courier+Prime&family=Pacifico&family=Playfair+Display:wght@400;700&family=Quicksand:wght@500;700&family=Varela+Round&display=swap');
 @import "tailwindcss";
+
+:root {
+  --theme-color: #1db954;
+  --theme-font: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --theme-heading-font: 'Hanken Grotesk', system-ui, sans-serif;
+}
 
 @layer base {
   body {
     background-color: #0b0c0e;
     color: #f4f4f5;
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: var(--theme-font);
     -webkit-font-smoothing: antialiased;
   }
 }
@@ -21,7 +28,7 @@
 }
 
 .spotify-green-btn {
-  background-color: #1db954;
+  background-color: var(--theme-color);
   color: #000000;
   font-weight: 700;
   transition: all 0.2s ease;
@@ -46,7 +53,7 @@
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #1db954 0%, #a7f3d0 100%);
+  background: linear-gradient(135deg, var(--theme-color) 0%, #a7f3d0 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -75,11 +82,11 @@
 }
 
 .font-hanken {
-  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-family: var(--theme-heading-font);
 }
 
 .font-jakarta {
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family: var(--theme-font);
 }
 
 

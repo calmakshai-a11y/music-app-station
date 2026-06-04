@@ -28,8 +28,8 @@ async function startServer() {
       }
 
       // Fetch from YouTube Data API v3
-      const youtubeUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=10&videoCategoryId=10&type=video&q=${encodeURIComponent(
-        q
+      const youtubeUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=50&videoCategoryId=10&type=video&q=${encodeURIComponent(
+        q + " -shorts -short"
       )}&key=${apiKey}`;
 
       const response = await fetch(youtubeUrl);
@@ -71,7 +71,7 @@ async function startServer() {
         const videoId = item.id.videoId;
         const title = item.snippet.title;
         const artist = item.snippet.channelTitle || "YouTube Artist";
-        const coverArt = item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.high?.url || "https://lh3.googleusercontent.com/aida-public/AB6AXuBqYDitXn8eqfWaGyqU5iKYjbnWgEhWrT3SN9sz-nmoIDDeaHKv4Gjc4nxfD7LJP9-G8PMcA0iaDnoWWlAY0hU6t3CKI1lOjGCsLtiqoXv-yY20ZcrQ4UL-YayTOCO8VjYPDyqdTIVib45qQlC8PS1dqnosSsrLPBRsbTVap4hWVvHQyMKHQhR3cWcSZx3bJHkCNmCTi6FRIMmOVjnDU_M__Nynmh-EEDw6ndMIPi2QGQtxLHrJ-cLbafrVX1f5y8Xg2AM2KSNUEA";
+        const coverArt = item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.medium?.url || "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&q=80&fit=crop";
         
         const d = durationMap[videoId] || { duration: "3:30", durationSec: 210 };
 
@@ -85,7 +85,7 @@ async function startServer() {
           coverArt: coverArt,
           youtubeId: videoId
         };
-      });
+      }).filter((t: any) => t.durationSec > 90); // Filter out potential shorts (<90s)
 
       res.json({
         status: "success",
