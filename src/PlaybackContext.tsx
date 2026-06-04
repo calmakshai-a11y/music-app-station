@@ -115,12 +115,14 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const ytPlayerRef = useRef<any>(null);
   const iframeContainerRef = useRef<HTMLDivElement | null>(null);
   const progressTimerRef = useRef<number | null>(null);
-  const eventCallbacksRef = useRef<{ handleTrackEnded: () => void, setIsPlaying: (val: boolean) => void, prevTrack: () => void, nextTrack: () => void, togglePlay: () => void, activeTrack: Track | null }>({
+  const silentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const eventCallbacksRef = useRef<{ handleTrackEnded: () => void, setIsPlaying: (val: boolean) => void, prevTrack: () => void, nextTrack: () => void, togglePlay: () => void, seek: (seconds: number) => void, activeTrack: Track | null }>({
     handleTrackEnded: () => {},
     setIsPlaying: () => {},
     prevTrack: () => {},
     nextTrack: () => {},
     togglePlay: () => {},
+    seek: () => {},
     activeTrack: null
   });
 
@@ -260,22 +262,48 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     }
 
-    if (isPlaying) {
-      progressTimerRef.current = window.setInterval(() => {
+    if (silentAudioRef.current) {
+      if (isPlaying) {
+        silentAudioRef.current.play().catch(() => {});
+      } else {
+        silentAudioRef.current.pause();
+      }
+    }
+
+    progressTimerRef.current = window.setInterval(() => {
+      let currentPos = 0;
+      if (ytPlayerRef.current && ytPlayerRef.current.getCurrentTime) {
+        const currentTime = ytPlayerRef.current.getCurrentTime();
+        setProgress(currentTime);
+        currentPos = currentTime;
+        
+        if (isPlaying && currentTime >= activeTrack.durationSec - 0.5) {
+          handleTrackEnded();
+        }
+      } else if (isPlaying) {
         setProgress((prev) => {
           const limit = activeTrack.durationSec;
           if (prev >= limit) {
             handleTrackEnded();
             return 0;
           }
-          return prev + 1;
+          currentPos = prev + 1;
+          return currentPos;
         });
-      }, 1000);
-    } else {
-      if (progressTimerRef.current) {
-        clearInterval(progressTimerRef.current);
       }
-    }
+
+      if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+        try {
+          navigator.mediaSession.setPositionState({
+            duration: activeTrack.durationSec > 0 ? activeTrack.durationSec : 100,
+            playbackRate: 1,
+            position: currentPos
+          });
+        } catch (e) {
+          console.warn("Failed to set position state", e);
+        }
+      }
+    }, 1000);
 
     return () => {
       if (progressTimerRef.current) {
@@ -371,6 +399,17 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setProgress(boundSec);
     if (ytPlayerRef.current && ytPlayerRef.current.seekTo) {
       ytPlayerRef.current.seekTo(boundSec, true);
+    }
+    if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: activeTrack.durationSec > 0 ? activeTrack.durationSec : 100,
+          playbackRate: 1,
+          position: boundSec
+        });
+      } catch (e) {
+        // ignore
+      }
     }
   };
 
@@ -485,11 +524,53 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       prevTrack,
       nextTrack,
       togglePlay,
+      seek,
       activeTrack
     };
-  }, [handleTrackEnded, setIsPlaying, prevTrack, nextTrack, togglePlay, activeTrack]);
+  }, [handleTrackEnded, setIsPlaying, prevTrack, nextTrack, togglePlay, seek, activeTrack]);
 
-  // Update Media Session
+  useEffect(() => {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+    }
+  }, [isPlaying]);
+
+  // Setup Media Session Handlers ONCE
+  useEffect(() => {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.setActionHandler('play', () => {
+        eventCallbacksRef.current.setIsPlaying(true);
+      });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        eventCallbacksRef.current.setIsPlaying(false);
+      });
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        eventCallbacksRef.current.prevTrack();
+      });
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        eventCallbacksRef.current.nextTrack();
+      });
+      navigator.mediaSession.setActionHandler('seekto', (details) => {
+        if (details.seekTime !== undefined) {
+          eventCallbacksRef.current.seek(details.seekTime);
+        }
+      });
+      navigator.mediaSession.setActionHandler('seekforward', (details) => {
+        const skipTime = details.seekOffset || 10;
+        if (ytPlayerRef.current?.getCurrentTime) {
+          eventCallbacksRef.current.seek(ytPlayerRef.current.getCurrentTime() + skipTime);
+        }
+      });
+      navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+        const skipTime = details.seekOffset || 10;
+        if (ytPlayerRef.current?.getCurrentTime) {
+          eventCallbacksRef.current.seek(ytPlayerRef.current.getCurrentTime() - skipTime);
+        }
+      });
+    }
+  }, []);
+
+  // Update Media Session Metadata
   useEffect(() => {
     if ('mediaSession' in navigator && window.MediaMetadata) {
       if (activeTrack && activeTrack.id !== 'empty') {
@@ -503,19 +584,6 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               type: 'image/jpeg'
             }
           ]
-        });
-
-        navigator.mediaSession.setActionHandler('play', () => {
-          eventCallbacksRef.current.setIsPlaying(true);
-        });
-        navigator.mediaSession.setActionHandler('pause', () => {
-          eventCallbacksRef.current.setIsPlaying(false);
-        });
-        navigator.mediaSession.setActionHandler('previoustrack', () => {
-          eventCallbacksRef.current.prevTrack();
-        });
-        navigator.mediaSession.setActionHandler('nexttrack', () => {
-          eventCallbacksRef.current.nextTrack();
         });
       }
     }
@@ -585,6 +653,12 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       >
         <div id="yt-player-target"></div>
       </div>
+      <audio
+        ref={silentAudioRef}
+        loop
+        playsInline
+        src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYxLjEuMTAwAAAAAAAAAAAAAAD/+0DAAAAAAAAAAAAAAAAAAAAAAABBQWxsSUQzQyAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq/+0DAAAAAAAAAAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV"
+      />
     </PlaybackContext.Provider>
   );
 };

@@ -31,7 +31,6 @@ export const NowPlayingView: React.FC = () => {
     removeFromQueue
   } = usePlayback();
 
-  const progressContainerRef = useRef<HTMLDivElement>(null);
   const volumeContainerRef = useRef<HTMLDivElement>(null);
   const [showPlaylistOptions, setShowPlaylistOptions] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
@@ -42,15 +41,6 @@ export const NowPlayingView: React.FC = () => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
-
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (progressContainerRef.current) {
-      const rect = progressContainerRef.current.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const progressPercent = Math.max(0, Math.min(clickX / rect.width, 1));
-      seek(progressPercent * activeTrack.durationSec);
-    }
   };
 
   const handleVolumeClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -205,25 +195,31 @@ export const NowPlayingView: React.FC = () => {
         )}
 
         {/* Interactive Progress Bar */}
-        <div className="w-full space-y-2">
-          <div
-            ref={progressContainerRef}
-            onClick={handleProgressClick}
-            className="relative group h-6 flex items-center cursor-pointer"
-            id="progress-container"
-          >
+        <div className="w-full space-y-2 relative">
+          <div className="relative h-6 flex items-center">
             {/* Background Track */}
-            <div className="absolute w-full h-1 bg-white/10 rounded-full"></div>
+            <div className="absolute w-full h-1 bg-white/20 rounded-full"></div>
+            
             {/* Active Highlighted timeline */}
             <div
-              className="absolute h-1 bg-[var(--theme-color)] rounded-full progress-glow"
+              className="absolute h-1 bg-[var(--theme-color)] rounded-full"
               style={{ width: `${progressPercent}%` }}
             ></div>
-            {/* Draggable Playhead */}
+            
+            {/* Playhead */}
             <div
-              className="absolute w-3.5 h-3.5 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute w-3.5 h-3.5 bg-white rounded-full shadow-lg pointer-events-none"
               style={{ left: `calc(${progressPercent}% - 7px)` }}
             ></div>
+            
+            <input
+              type="range"
+              min={0}
+              max={activeTrack.durationSec || 100}
+              value={progress || 0}
+              onChange={(e) => seek(Number(e.target.value))}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer outline-none m-0"
+            />
           </div>
           <div className="flex justify-between text-xs font-semibold text-zinc-500">
             <span>{formatTime(progress)}</span>
@@ -315,13 +311,14 @@ export const NowPlayingView: React.FC = () => {
         </div>
         
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2 hide-scrollbar">
-          {upcomingQueue.length > 0 ? (
-            upcomingQueue.map((track, i) => {
-              const actualIndex = queueIndex + 1 + i;
+          {activeQueue.length > 0 ? (
+            activeQueue.map((track, i) => {
+              const actualIndex = i;
+              const isCurrentlyPlaying = queueIndex === i;
               return (
                 <div 
                   key={`${track.id}-${i}`}
-                  className="flex items-center justify-between p-2 rounded-xl hover:bg-[#18191d] transition-colors group border border-transparent hover:border-white/5"
+                  className={`flex items-center justify-between p-2 rounded-xl transition-colors group border border-transparent ${isCurrentlyPlaying ? 'bg-[#18191d] border-white/5' : 'hover:bg-[#18191d] hover:border-white/5'}`}
                 >
                   <div 
                     onClick={() => jumpToQueueIndex(actualIndex)}
@@ -333,9 +330,14 @@ export const NowPlayingView: React.FC = () => {
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                         <span className="material-symbols-outlined text-white text-base">play_arrow</span>
                       </div>
+                      {isCurrentlyPlaying && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                          <div className="w-2 h-2 bg-[var(--theme-color)] rounded-full animate-ping"></div>
+                        </div>
+                      )}
                     </div>
                     <div className="truncate pr-4">
-                      <p className="font-jakarta font-semibold text-sm text-zinc-200 truncate group-hover:text-white transition-colors">{track.title}</p>
+                      <p className={`font-jakarta font-semibold text-sm truncate transition-colors ${isCurrentlyPlaying ? 'text-[var(--theme-color)]' : 'text-zinc-200 group-hover:text-white'}`}>{track.title}</p>
                       <p className="font-jakarta text-xs text-zinc-500 truncate">{track.artist}</p>
                     </div>
                   </div>
