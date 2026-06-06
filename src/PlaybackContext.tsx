@@ -262,12 +262,6 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     }
 
-    if (silentAudioRef.current) {
-      if (isPlaying) {
-        silentAudioRef.current.play().catch(() => {});
-      }
-    }
-
     progressTimerRef.current = window.setInterval(() => {
       if (ytPlayerRef.current && ytPlayerRef.current.getCurrentTime) {
         const currentTime = ytPlayerRef.current.getCurrentTime();
@@ -394,17 +388,6 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setProgress(boundSec);
     if (ytPlayerRef.current && ytPlayerRef.current.seekTo) {
       ytPlayerRef.current.seekTo(boundSec, true);
-    }
-    if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
-      try {
-        navigator.mediaSession.setPositionState({
-          duration: activeTrack.durationSec > 0 ? activeTrack.durationSec : 100,
-          playbackRate: 1,
-          position: boundSec
-        });
-      } catch (e) {
-        // ignore
-      }
     }
   };
 
@@ -539,11 +522,6 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       navigator.mediaSession.setActionHandler('nexttrack', () => {
         eventCallbacksRef.current.nextTrack();
       });
-      navigator.mediaSession.setActionHandler('seekto', (details) => {
-        if (details.seekTime !== undefined) {
-          eventCallbacksRef.current.seek(details.seekTime);
-        }
-      });
     }
   }, []);
 
@@ -562,18 +540,6 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             }
           ]
         });
-        
-        if ('setPositionState' in navigator.mediaSession) {
-          try {
-            navigator.mediaSession.setPositionState({
-              duration: activeTrack.durationSec > 0 ? activeTrack.durationSec : 100,
-              playbackRate: isPlaying ? 1 : 0,
-              position: 0
-            });
-          } catch (e) {
-            console.warn("Failed to set position state", e);
-          }
-        }
       }
     }
   }, [activeTrack]);
@@ -581,19 +547,6 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     if ('mediaSession' in navigator) {
       navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
-      
-      if ('setPositionState' in navigator.mediaSession) {
-        try {
-          // Keep current position, just update playback rate so browser knows to move or stop the slider
-          navigator.mediaSession.setPositionState({
-            duration: activeTrack.durationSec > 0 ? activeTrack.durationSec : 100,
-            playbackRate: isPlaying ? 1 : 0,
-            position: progress
-          });
-        } catch (e) {
-          // ignore
-        }
-      }
     }
   }, [isPlaying]);
 
