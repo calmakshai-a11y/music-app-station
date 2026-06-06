@@ -265,43 +265,26 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (silentAudioRef.current) {
       if (isPlaying) {
         silentAudioRef.current.play().catch(() => {});
-      } else {
-        silentAudioRef.current.pause();
       }
     }
 
     progressTimerRef.current = window.setInterval(() => {
-      let currentPos = 0;
       if (ytPlayerRef.current && ytPlayerRef.current.getCurrentTime) {
         const currentTime = ytPlayerRef.current.getCurrentTime();
         setProgress(currentTime);
-        currentPos = currentTime;
         
         if (isPlaying && currentTime >= activeTrack.durationSec - 0.5) {
           handleTrackEnded();
         }
       } else if (isPlaying) {
         setProgress((prev) => {
-          const limit = activeTrack.durationSec;
+          const limit = activeTrack.durationSec > 0 ? activeTrack.durationSec : 100;
           if (prev >= limit) {
             handleTrackEnded();
             return 0;
           }
-          currentPos = prev + 1;
-          return currentPos;
+          return prev + 1;
         });
-      }
-
-      if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
-        try {
-          navigator.mediaSession.setPositionState({
-            duration: activeTrack.durationSec > 0 ? activeTrack.durationSec : 100,
-            playbackRate: 1,
-            position: currentPos
-          });
-        } catch (e) {
-          console.warn("Failed to set position state", e);
-        }
       }
     }, 1000);
 
@@ -323,7 +306,14 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const ensureMediaPlaying = () => {
+    if (silentAudioRef.current) {
+      silentAudioRef.current.play().catch(() => {});
+    }
+  };
+
   const togglePlay = () => {
+    if (!isPlaying) ensureMediaPlaying();
     setIsPlaying((prev) => !prev);
   };
 
@@ -331,6 +321,7 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Only play if not empty fallback
     if (track.id === 'empty') return;
     
+    ensureMediaPlaying();
     setActiveTrack(track);
     addToRecentTracks(track);
     
@@ -351,6 +342,7 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const playPlaylist = (playlist: Playlist) => {
     if (playlist.tracks.length > 0) {
+      ensureMediaPlaying();
       setActiveQueue(playlist.tracks);
       setQueueIndex(0);
       setActiveTrack(playlist.tracks[0]);
@@ -362,6 +354,7 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const nextTrack = () => {
     if (activeQueue.length === 0) return;
+    ensureMediaPlaying();
     let nextIndex = queueIndex + 1;
     
     // Handle queue expansion
@@ -383,6 +376,7 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const prevTrack = () => {
     if (activeQueue.length === 0) return;
+    ensureMediaPlaying();
     let prevIndex = queueIndex - 1;
     if (prevIndex < 0) {
       prevIndex = activeQueue.length - 1;
@@ -395,6 +389,7 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const seek = (seconds: number) => {
+    ensureMediaPlaying();
     const boundSec = Math.max(0, Math.min(seconds, activeTrack.durationSec));
     setProgress(boundSec);
     if (ytPlayerRef.current && ytPlayerRef.current.seekTo) {
@@ -529,12 +524,6 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, [handleTrackEnded, setIsPlaying, prevTrack, nextTrack, togglePlay, seek, activeTrack]);
 
-  useEffect(() => {
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
-    }
-  }, [isPlaying]);
-
   // Setup Media Session Handlers ONCE
   useEffect(() => {
     if ('mediaSession' in navigator) {
@@ -555,18 +544,6 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           eventCallbacksRef.current.seek(details.seekTime);
         }
       });
-      navigator.mediaSession.setActionHandler('seekforward', (details) => {
-        const skipTime = details.seekOffset || 10;
-        if (ytPlayerRef.current?.getCurrentTime) {
-          eventCallbacksRef.current.seek(ytPlayerRef.current.getCurrentTime() + skipTime);
-        }
-      });
-      navigator.mediaSession.setActionHandler('seekbackward', (details) => {
-        const skipTime = details.seekOffset || 10;
-        if (ytPlayerRef.current?.getCurrentTime) {
-          eventCallbacksRef.current.seek(ytPlayerRef.current.getCurrentTime() - skipTime);
-        }
-      });
     }
   }, []);
 
@@ -585,12 +562,44 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             }
           ]
         });
+        
+        if ('setPositionState' in navigator.mediaSession) {
+          try {
+            navigator.mediaSession.setPositionState({
+              duration: activeTrack.durationSec > 0 ? activeTrack.durationSec : 100,
+              playbackRate: isPlaying ? 1 : 0,
+              position: 0
+            });
+          } catch (e) {
+            console.warn("Failed to set position state", e);
+          }
+        }
       }
     }
   }, [activeTrack]);
 
+  useEffect(() => {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+      
+      if ('setPositionState' in navigator.mediaSession) {
+        try {
+          // Keep current position, just update playback rate so browser knows to move or stop the slider
+          navigator.mediaSession.setPositionState({
+            duration: activeTrack.durationSec > 0 ? activeTrack.durationSec : 100,
+            playbackRate: isPlaying ? 1 : 0,
+            position: progress
+          });
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+  }, [isPlaying]);
+
   const jumpToQueueIndex = (index: number) => {
     if (index >= 0 && index < activeQueue.length) {
+      ensureMediaPlaying();
       setQueueIndex(index);
       const track = activeQueue[index];
       setActiveTrack(track);
