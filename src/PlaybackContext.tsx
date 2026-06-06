@@ -313,7 +313,13 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const togglePlay = () => {
-    if (!isPlaying) ensureMediaPlaying();
+    if (!isPlaying) {
+      ensureMediaPlaying();
+      if (ytPlayerRef.current?.playVideo) ytPlayerRef.current.playVideo();
+    } else {
+      if (silentAudioRef.current) silentAudioRef.current.pause();
+      if (ytPlayerRef.current?.pauseVideo) ytPlayerRef.current.pauseVideo();
+    }
     setIsPlaying((prev) => !prev);
   };
 
@@ -389,7 +395,7 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const seek = (seconds: number) => {
-    ensureMediaPlaying();
+    if (isPlaying) ensureMediaPlaying();
     const boundSec = Math.max(0, Math.min(seconds, activeTrack.durationSec));
     setProgress(boundSec);
     if (ytPlayerRef.current && ytPlayerRef.current.seekTo) {
@@ -399,7 +405,7 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       try {
         navigator.mediaSession.setPositionState({
           duration: activeTrack.durationSec > 0 ? activeTrack.durationSec : 100,
-          playbackRate: 1,
+          playbackRate: isPlaying ? 1 : 0,
           position: boundSec
         });
       } catch (e) {
@@ -528,9 +534,13 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     if ('mediaSession' in navigator) {
       navigator.mediaSession.setActionHandler('play', () => {
+        if (silentAudioRef.current) silentAudioRef.current.play().catch(() => {});
+        if (ytPlayerRef.current?.playVideo) ytPlayerRef.current.playVideo();
         eventCallbacksRef.current.setIsPlaying(true);
       });
       navigator.mediaSession.setActionHandler('pause', () => {
+        if (silentAudioRef.current) silentAudioRef.current.pause();
+        if (ytPlayerRef.current?.pauseVideo) ytPlayerRef.current.pauseVideo();
         eventCallbacksRef.current.setIsPlaying(false);
       });
       navigator.mediaSession.setActionHandler('previoustrack', () => {
@@ -544,6 +554,10 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           eventCallbacksRef.current.seek(details.seekTime);
         }
       });
+      try {
+        navigator.mediaSession.setActionHandler('seekforward', null);
+        navigator.mediaSession.setActionHandler('seekbackward', null);
+      } catch (e) {}
     }
   }, []);
 
@@ -581,21 +595,21 @@ export const PlaybackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     if ('mediaSession' in navigator) {
       navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
-      
+      // Only set playbackRate, let OS handle position unless we fetch current ytPlayerRef time
       if ('setPositionState' in navigator.mediaSession) {
         try {
-          // Keep current position, just update playback rate so browser knows to move or stop the slider
+          const currentPos = ytPlayerRef.current?.getCurrentTime ? ytPlayerRef.current.getCurrentTime() : 0;
           navigator.mediaSession.setPositionState({
             duration: activeTrack.durationSec > 0 ? activeTrack.durationSec : 100,
             playbackRate: isPlaying ? 1 : 0,
-            position: progress
+            position: currentPos
           });
         } catch (e) {
           // ignore
         }
       }
     }
-  }, [isPlaying]);
+  }, [isPlaying, activeTrack.durationSec]);
 
   const jumpToQueueIndex = (index: number) => {
     if (index >= 0 && index < activeQueue.length) {
